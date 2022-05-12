@@ -1,4 +1,4 @@
-### A dynamic modeling framework for SARS-CoV-2 surveillance, prediction, and resource capacity for institutes of higher education
+### A dynamic modeling toolkit for SARS-CoV-2 surveillance, prediction, and resource capacity for institutes of higher education
 
 ###### Zichen Ma and Lior Rennert
 
