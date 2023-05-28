@@ -2,11 +2,10 @@
 # https://github.com/ZichenMa-USC/CampusPredictionApp
 
 library(tidyverse)
-library(dplyr)
 library(reshape2)
-library(lubridate)
 library(shiny)
 library(shinyjs)
+library(rsconnect)
 library(RColorBrewer)
 
 '%notin%' = Negate('%in%')
@@ -20,39 +19,64 @@ emp.cols = 4:5
 
 affiliation = c("in.state", "far.from.home", "off-campus", "faculty", "employee")
 
-N.clemson = c(4857, 2266, 15629, 1675, 3379)
+N.clemson = c(4853, 2265, 15516, 1611, 3271)
 names(N.clemson) = affiliation
-N.tab.clemson = matrix(c(1083, 287, 2577, 161, 537,
-                         1399, 617, 4758, 920, 1189,
-                         221, 150, 413, 254, 345,
-                         1003, 350, 3287, 55, 546,
-                         1037, 760, 4311, 233, 634,
-                         114, 102, 283, 52, 128), 
+N.tab.clemson = matrix(c(1556, 466, 5073, 182, 763,
+                         2335, 1164, 5367, 1053, 1594,
+                         182, 159, 369, 267, 366,
+                         410, 162, 2668, 17, 263,
+                         339, 288, 1900, 76, 254,
+                         31, 26, 112, 16, 31), 
                        nrow = length(protect.levels), ncol = length(affiliation), byrow = T)
 
-r.clemson = matrix(c(4, 0, 15, 3, 8,
-                     13, 0, 67, 24, 24,
-                     4, 2, 6, 4, 5,
-                     39, 5, 85, 6, 28,
-                     36, 12, 107, 20, 42,
-                     5, 5, 7, 5, 12), 
+# r.clemson = matrix(c(4, 0, 15, 3, 8,
+#                      13, 0, 67, 24, 24,
+#                      4, 2, 6, 4, 5,
+#                      39, 5, 85, 6, 28,
+#                      36, 12, 107, 20, 42,
+#                      5, 5, 7, 5, 12),
+#                    nrow = length(protect.levels), ncol = length(affiliation), byrow = T)
+# r.clemson.tot = apply(r.clemson, 2, sum)
+
+r.clemson = matrix(c(127, 75, 404, 11, 91,
+                     171, 190, 362, 45, 119,
+                     5, 6, 18, 8, 20,
+                     16, 13, 172, 2, 14,
+                     20, 27, 110, 3, 13,
+                     0, 1, 4, 0, 1),
                    nrow = length(protect.levels), ncol = length(affiliation), byrow = T)
 r.clemson.tot = apply(r.clemson, 2, sum)
 
-i.clemson = matrix(c(0, 0, 0, 0, 4, 
-                     1, 0, 13, 4, 1,
-                     1, 0, 2, 1, 1,
-                     0, 0, 0, 0, 1,
-                     0, 0, 2, 0, 1,
-                     0, 0, 0, 0, 0), 
+# i.clemson = matrix(c(0, 0, 0, 0, 4,
+#                      1, 0, 13, 4, 1,
+#                      1, 0, 2, 1, 1,
+#                      0, 0, 0, 0, 1,
+#                      0, 0, 2, 0, 1,
+#                      0, 0, 0, 0, 0),
+#                    nrow = length(protect.levels), ncol = length(affiliation), byrow = T)
+
+i.clemson = matrix(c(111, 39, 272, 7, 21,
+                     195, 99, 264, 17, 37,
+                     10, 8, 14, 2, 1,
+                     28, 11, 146, 1, 7,
+                     17, 16, 66, 0, 7,
+                     1, 0, 1, 0, 2),
                    nrow = length(protect.levels), ncol = length(affiliation), byrow = T)
 
-q.clemson = matrix(c(0, 0, 0, 0, 4, 0,
-                     1, 0, 9, 3, 1, 0,
-                     0, 0, 2, 1, 1, 0,
-                     0, 0, 0, 0, 1, 0,
-                     0, 0, 2, 0, 1, 0,
-                     0, 0, 0, 0, 0, 0), 
+# q.clemson = matrix(c(0, 0, 0, 0, 4, 0,
+#                      1, 0, 9, 3, 1, 0,
+#                      0, 0, 2, 1, 1, 0,
+#                      0, 0, 0, 0, 1, 0,
+#                      0, 0, 2, 0, 1, 0,
+#                      0, 0, 0, 0, 0, 0),
+#                    nrow = length(protect.levels), ncol = length(affiliation)+1, byrow = T)
+
+q.clemson = matrix(c(121, 56, 369, 7, 39, 0,
+                     222, 158, 353, 21, 62, 0,
+                     9, 10, 18, 5, 4, 0,
+                     31, 17, 191, 2, 9, 0,
+                     26, 21, 104, 1, 6, 0,
+                     1, 1, 2, 0, 1, 0),
                    nrow = length(protect.levels), ncol = length(affiliation)+1, byrow = T)
 
 qs.clemson = matrix(0, nrow = length(protect.levels), ncol = length(affiliation)+1, byrow = T)
@@ -65,11 +89,11 @@ for(k in 1:length(protect.levels)){
 }
 
 protection = matrix(c(0, 0,
-                      .244, .243,
-                      .487, .486,
-                      .830, .578,
-                      .830, .578,
-                      .830, .578), 
+                      .249, .400,
+                      .643, .709,
+                      .212, .166,
+                      .408, .499,
+                      .718, .758), 
                     nrow = length(protect.levels), ncol = 2, byrow = T)
 
 hr = 1 - protection
@@ -95,8 +119,8 @@ weeks.since.vax = matrix(c(0, 0,
 
 
 
-
-
+#protection[4:6,] = protection[1:3,]
+#hr = 1 - protection
 
 
 
@@ -144,47 +168,56 @@ ui <- pageWithSidebar(
         numericInput("N_off", "Number of non-residential students", value=sum(N.clemson[3]), min = 1, max = 500000),
         numericInput("N_fac", "Number of faculty", value=sum(N.clemson[4]), min = 1, max = 500000),
         numericInput("N_staff", "Number of staff", value=sum(N.clemson[5]), min = 1, max = 500000),
-        numericInput("N_comm", "Community population size", 18779, min = 1, max = 500000),
-        selectInput("use_vax", "Percent fully vaccinated", choices = list("Use CDC estimates" = 1, "Use Clemson esimates" = 2, "Input your own" = 3), selected = 1),
+        numericInput("N_comm", "Community population size", 17681, min = 1, max = 500000),
+        selectInput("use_vax", "Percent fully vaccinated", choices = list("Use CDC estimates" = 1, "Use Clemson estimates" = 2, "Input your own" = 3), selected = 1),
         numericInput("vax.p.stud", "Student fully vaccinated (%)", value=63.5, min = 0, max = 100),
         numericInput("vax.p.emp", "Employee fully vaccinated (%)", value=76.2, min = 0, max = 100),
-        selectInput("use_boost", "Percent boosted among fully vaccinated", choices = list("Use CDC estimates" = 1, "Use Clemson esimates" = 2, "Input your own" = 3), selected = 1),
+        selectInput("use_boost", "Percent boosted among fully vaccinated", choices = list("Use CDC estimates" = 1, "Use Clemson estimates" = 2, "Input your own" = 3), selected = 1),
         numericInput("boost.p.stud", "Student percent boosted among fully vaccinated (%)", value=48.3, min = 0, max = 100),
         numericInput("boost.p.emp", "Employee percent boosted among fully vaccinated (%)", value=48.3, min = 0, max = 100),
-        selectInput("use_infect", "Use Clemson currently infected", choices = list("Yes" = 1, "No" = 0), selected = 1),
-        selectInput("testing_strat", "Testing strategy", choices = list("Surveillance testing" = 1, "Voluntary testing" = 0), selected = 0),
+        selectInput("testing_strat", "Testing strategy", choices = list("Weekly testing" = 1,
+                                                                        "Bi-weekly testing" = 2,
+                                                                        "Monthly testing" = 3,
+                                                                        "Voluntary testing" = 0), selected = 0),
+        # numericInput("prop_test_on","Residential testing frequency (days between test)",value=100,min=1,max=10000),
+        # numericInput("prop_test_off","Non-residential testing frequency (days between test)",value=100,min=1,max=10000),
+        # numericInput("prop_test_fac","Faculty testing frequency (days between test)",value=100,min=1,max=10000),
+        # numericInput("prop_test_staff","Staff testing frequency (days between test)",value=100,min=1,max=10000),
+        #selectInput("use_infect", "Use Clemson currently infected", choices = list("Yes" = 1, "No" = 0), selected = 0),
         numericInput("curr.infect.stud", "Currently infected students", value=sum(i.clemson[,stud.cols]), min = 0, max = 100000),
         numericInput("curr.infect.emp", "Currently infected employees", value=sum(i.clemson[,emp.cols]), min = 0, max = 100000),
-        selectInput("use_recovered", "Use Clemson recovered", choices = list("Yes" = 1, "No" = 0), selected = 1),
+        selectInput("testing_strat_init", "The above numbers are based on", choices = list("Mandatory testing" = 1,
+                                                                                           "Voluntary testing" = 0), selected = 0),
+        #selectInput("use_recovered", "Use Clemson recovered", choices = list("Yes" = 1, "No" = 0), selected = 1),
         numericInput("r.stud", "Percent students recovered within last 90 days (%)", value=round(sum(r.clemson.tot[stud.cols])/sum(N.clemson[stud.cols]), 3)*100, min = 0, max = 100),
         numericInput("r.emp", "Percent employees recovered within last 90 days (%)", value=round(sum(r.clemson.tot[emp.cols])/sum(N.clemson[emp.cols]), 3)*100, min = 0, max = 100),
-        selectInput("use_clemson_iq", "Use Clemson isolated/quarantine numbers", choices = list("Yes" = 1, "No" = 0), selected = 1),
+        #selectInput("use_clemson_iq", "Use Clemson isolated/quarantine numbers", choices = list("Yes" = 1, "No" = 0), selected = 1),
         numericInput("curr.iso.stud", "Isolated students", value=sum(q.clemson[,stud.cols]), min = 0, max = 100000),
-        numericInput("curr.qua.stud", "Quarantined students", value=sum(qs.clemson[,stud.cols]), min = 0, max = 100000),
+        numericInput("curr.qua.stud", "Quarantined students", value=5, min = 0, max = 100000),
         numericInput("curr.iso.emp", "Isolated employees", value=sum(q.clemson[,emp.cols]), min = 0, max = 100000),
-        numericInput("curr.qua.emp", "Quarantined employees", value=sum(qs.clemson[,emp.cols]), min = 0, max = 100000),
+        numericInput("curr.qua.emp", "Quarantined employees", value=4, min = 0, max = 100000),
+        checkboxInput("show_detected", "Show proportion of infections detected through voluntary testing", value = FALSE),
+        sliderInput("p_detected_on","Residential proportion of infections detected through voluntary testing",value=0.10,min=0.05,max=0.80),
+        sliderInput("p_detected_off","Non-residential proportion of infections detected through voluntary testing",value=0.10,min=0.05,max=0.80),
+        sliderInput("p_detected_fac","Faculty proportion of infections detected through voluntary testing",value=0.15,min=0.05,max=0.80),
+        sliderInput("p_detected_staff","Staff proportion of infections detected through voluntary testing",value=0.15,min=0.05,max=0.80),
+        sliderInput("p_detected_comm","Community proportion of infections detected through voluntary testing",value=0.10,min=0.05,max=0.80),
+        checkboxInput("show_ar", "Show additional recovered", value = FALSE),
+        selectInput("add_recovered", "Add additional recovered", choices = list("Yes" = 1, "No" = 0), selected = 1),
+        sliderInput("p_recovered_on","Proportion of additional recovered (residential)",value=0.33,min=0,max=1),
+        sliderInput("p_recovered_off","Proportion of additional recovered (non-residential)",value=0.33,min=0,max=1),
+        sliderInput("p_recovered_fac","Proportion of additional recovered (faculty)",value=0.15,min=0,max=1),
+        sliderInput("p_recovered_staff","Proportion of additional recovered (staff)",value=0.15,min=0,max=1),
+        #sliderInput("p_recovered_comm","Proportion of additional recovered (community)",value=0.60,min=0,max=1),
+        checkboxInput("show_r0", "Show basic reproduction number (R0)", value = FALSE),
+        sliderInput("R_0_on","R0 (residential)",value=10,min=0.5,max=15),
+        sliderInput("R_0_off","R0 (non-residential)",value=8.3,min=0.5,max=15),
+        sliderInput("R_0_fac","R0 (faculty)",value=4.1,min=0.5,max=15),
+        sliderInput("R_0_staff","R0 (staff)",value=5.4,min=0.5,max=15),
+        sliderInput("R_0_comm","R0 (community)",value=5.4,min=0.5,max=15),
+        checkboxInput("show_other", "Show additional parameters", value = FALSE),
         sliderInput("p_I_community","Community baseline infection rate",0.01,min=0,max=0.25),
-        sliderInput("p_R_baseline_comm","Community baseline recovery rate",0.30,min=0.01,max=0.50),
-        sliderInput("p_detected_on","On-campus proportion of infections detected through voluntary testing",value=0.15,min=0.05,max=0.80),
-        sliderInput("p_detected_off","Off-campus proportion of infections detected through voluntary testing",value=0.15,min=0.05,max=0.80),
-        sliderInput("p_detected_fac","Faculty proportion of infections detected through voluntary testing",value=0.25,min=0.05,max=0.80),
-        sliderInput("p_detected_staff","Staff proportion of infections detected through voluntary testing",value=0.25,min=0.05,max=0.80),
-        sliderInput("p_detected_comm","Community proportion of infections detected through voluntary testing",value=0.20,min=0.05,max=0.80),
-        selectInput("add_recovered", "Additional recovered", choices = list("Yes" = 1, "No" = 0), selected = 1),
-        sliderInput("p_recovered_on","Proportion of additional recovered (on-campus)",value=0.40,min=0,max=1),
-        sliderInput("p_recovered_off","Proportion of additional recovered (off-campus)",value=0.40,min=0,max=1),
-        sliderInput("p_recovered_fac","Proportion of additional recovered (faculty)",value=0.20,min=0,max=1),
-        sliderInput("p_recovered_staff","Proportion of additional recovered (staff)",value=0.20,min=0,max=1),
-        sliderInput("p_recovered_comm","Proportion of additional recovered (community)",value=0.60,min=0,max=1),
-        sliderInput("R_0_on","R0 (on-campus)",value=12,min=0.5,max=15),
-        sliderInput("R_0_off","R0 (off-campus)",value=10,min=0.5,max=15),
-        sliderInput("R_0_fac","R0 (faculty)",value=5,min=0.5,max=15),
-        sliderInput("R_0_staff","R0 (staff)",value=5.5,min=0.5,max=15),
-        sliderInput("R_0_comm","R0 (community)",value=6,min=0.5,max=15),
-        numericInput("prop_test_on","Residential testing frequency (days per test)",value=100,min=1,max=10000),
-        numericInput("prop_test_off","Non-residential testing frequency (days per test)",value=100,min=1,max=10000),
-        numericInput("prop_test_fac","Faculty testing frequency (days per test)",value=100,min=1,max=10000),
-        numericInput("prop_test_staff","Staff testing frequency (days per test)",value=100,min=1,max=10000),
+        sliderInput("p_R_baseline_comm","Community baseline recovery rate",0.20,min=0.01,max=0.50),
         sliderInput("lag_start", "Time between arrival of students (baseline) and onset of surveillance testing (days)", value=0, min=0, max=14),
         sliderInput("q_factor","Number of contacts per person",value=0, min = 0, max = 10),
         sliderInput("quarantineS", "Time in quarantine for non-infected individuals (days)",value=5,min=1,max = 14),
@@ -196,15 +229,16 @@ ui <- pageWithSidebar(
         sliderInput("exposure_period","Exposure period (days)",value=3,min=2,max=7),
         sliderInput("infectious_period_A","Infectious period for asymptomatic/undetected cases (days)",value=10,min=5,max=14),
         sliderInput("infectious_period_I","Lag between infection and detection/isolation for symptomatic cases (days)",value=2,min=1,max=14),
-        sliderInput("time.max","Semester length (weeks)",value = 4,min=2,max=20)
+        sliderInput("time.max","Semester length (weeks)",value = 5,min=2,max=20)
         #sliderInput("time.step","Cycle time (hours)",value = 4,min=1,max=12)
     ),
     
     # Main panel for displaying outputs ----
     mainPanel(
         tabsetPanel(
-            tabPanel("On-campus Weekly Symptomatic Infections",plotOutput("plot2")),
-            tabPanel("On-campus Weekly Infections and Prevalence",plotOutput("plot1")),
+            tabPanel("Symptomatic Infections",plotOutput("plot2")),
+            tabPanel("Detected Infections",plotOutput("plot7")),
+            tabPanel("Total Infections",plotOutput("plot1")),
             tabPanel("Number in Isolation (students)",plotOutput("plot3")),
             tabPanel("Number in Isolation and Quarantine (students) ",plotOutput("plot4")),
             tabPanel("Number in Isolation (employees)",plotOutput("plot5")),
@@ -301,55 +335,112 @@ server = function(input, output)
         }
     })
     
-    observeEvent(input$use_infect, {
-        if(input$use_infect == 1){
-            disable("testing_strat")
-            disable("curr.infect.stud")
-            disable("curr.infect.emp")
-            
-            updateSelectInput(inputId = "testing_strat", selected = 0)
-            updateNumericInput(inputId = "curr.infect.stud", value = sum(i.clemson[,stud.cols]), min = 0, max = 100000)
-            updateNumericInput(inputId = "curr.infect.emp", value = sum(i.clemson[,emp.cols]), min = 0, max = 100000)
-            
-        } else{
-            enable("testing_strat")
-            enable("curr.infect.stud")
-            enable("curr.infect.emp")
-        }
+    # observeEvent(input$use_infect, {
+    #     if(input$use_infect == 1){
+    #         disable("curr.infect.stud")
+    #         disable("curr.infect.emp")
+    #         
+    #         #updateSelectInput(inputId = "testing_strat", selected = 0)
+    #         updateNumericInput(inputId = "curr.infect.stud", value = sum(i.clemson[,stud.cols]), min = 0, max = 100000)
+    #         updateNumericInput(inputId = "curr.infect.emp", value = sum(i.clemson[,emp.cols]), min = 0, max = 100000)
+    #         
+    #     } else{
+    #         enable("curr.infect.stud")
+    #         enable("curr.infect.emp")
+    #     }
+    # })
+    
+    # observeEvent(input$testing_strat, {
+    #     if(input$testing_strat == 1){
+    #         # mandatory testing
+    #         updateNumericInput(inputId = "prop_test_on", value = 7, min = 0, max = 10000)
+    #         updateNumericInput(inputId = "prop_test_off", value = 7, min = 0, max = 10000)
+    #         updateNumericInput(inputId = "prop_test_fac", value = 7, min = 0, max = 10000)
+    #         updateNumericInput(inputId = "prop_test_staff", value = 7, min = 0, max = 10000)
+    # 
+    #     } else{
+    #         # voluntary testing
+    #         updateNumericInput(inputId = "prop_test_on", value = 100, min = 0, max = 10000)
+    #         updateNumericInput(inputId = "prop_test_off", value = 100, min = 0, max = 10000)
+    #         updateNumericInput(inputId = "prop_test_fac", value = 100, min = 0, max = 10000)
+    #         updateNumericInput(inputId = "prop_test_staff", value = 100, min = 0, max = 10000)
+    #         
+    #     }
+    # })
+    
+    # observeEvent(input$use_recovered, {
+    #     if(input$use_recovered == 1){
+    #         disable("r.stud")
+    #         disable("r.emp")
+    #         
+    #         updateNumericInput(inputId = "r.stud", value = round(sum(r.clemson.tot[stud.cols])/sum(N.clemson[stud.cols]), 3)*100, min = 0, max = 100)
+    #         updateNumericInput(inputId = "r.emp", value = round(sum(r.clemson.tot[emp.cols])/sum(N.clemson[emp.cols]), 3)*100, min = 0, max = 100)
+    #         
+    #     } else{
+    #         enable("r.stud")
+    #         enable("r.emp")
+    #     }
+    # })
+    
+    # observeEvent(input$use_clemson_iq, {
+    #     if(input$use_clemson_iq == 1){
+    #         disable("curr.iso.stud")
+    #         disable("curr.qua.stud")
+    #         disable("curr.iso.emp")
+    #         disable("curr.qua.emp")
+    #         
+    #         updateNumericInput(inputId = "curr.iso.stud", value = sum(q.clemson[,stud.cols]), min = 0, max = 100000)
+    #         updateNumericInput(inputId = "curr.iso.emp", value = sum(q.clemson[,emp.cols]), min = 0, max = 100000)
+    #         updateNumericInput(inputId = "curr.qua.stud", value = sum(qs.clemson[,stud.cols]), min = 0, max = 100000)
+    #         updateNumericInput(inputId = "curr.qua.emp", value = sum(qs.clemson[,emp.cols]), min = 0, max = 100000)
+    #         
+    #     } else{
+    #         enable("curr.iso.stud")
+    #         enable("curr.qua.stud")
+    #         enable("curr.iso.emp")
+    #         enable("curr.qua.emp")
+    #     }
+    # })
+    
+    observeEvent(input$show_detected, {
+        toggle(id = "p_detected_on", condition = input$show_detected)
+        toggle(id = "p_detected_off", condition = input$show_detected)
+        toggle(id = "p_detected_fac", condition = input$show_detected)
+        toggle(id = "p_detected_staff", condition = input$show_detected)
+        toggle(id = "p_detected_comm", condition = input$show_detected)
     })
     
-    observeEvent(input$use_recovered, {
-        if(input$use_recovered == 1){
-            disable("r.stud")
-            disable("r.emp")
-            
-            updateNumericInput(inputId = "r.stud", value = round(sum(r.clemson.tot[stud.cols])/sum(N.clemson[stud.cols]), 3)*100, min = 0, max = 100)
-            updateNumericInput(inputId = "r.emp", value = round(sum(r.clemson.tot[emp.cols])/sum(N.clemson[emp.cols]), 3)*100, min = 0, max = 100)
-            
-        } else{
-            enable("r.stud")
-            enable("r.emp")
-        }
+    observeEvent(input$show_ar, {
+        toggle(id = "add_recovered", condition = input$show_ar)
+        toggle(id = "p_recovered_on", condition = input$show_ar)
+        toggle(id = "p_recovered_off", condition = input$show_ar)
+        toggle(id = "p_recovered_fac", condition = input$show_ar)
+        toggle(id = "p_recovered_staff", condition = input$show_ar)
     })
     
-    observeEvent(input$use_clemson_iq, {
-        if(input$use_clemson_iq == 1){
-            disable("curr.iso.stud")
-            disable("curr.qua.stud")
-            disable("curr.iso.emp")
-            disable("curr.qua.emp")
-            
-            updateNumericInput(inputId = "curr.iso.stud", value = sum(q.clemson[,stud.cols]), min = 0, max = 100000)
-            updateNumericInput(inputId = "curr.iso.emp", value = sum(q.clemson[,emp.cols]), min = 0, max = 100000)
-            updateNumericInput(inputId = "curr.qua.stud", value = sum(qs.clemson[,stud.cols]), min = 0, max = 100000)
-            updateNumericInput(inputId = "curr.qua.emp", value = sum(qs.clemson[,emp.cols]), min = 0, max = 100000)
-            
-        } else{
-            enable("curr.iso.stud")
-            enable("curr.qua.stud")
-            enable("curr.iso.emp")
-            enable("curr.qua.emp")
-        }
+    observeEvent(input$show_r0, {
+        toggle(id = "R_0_on", condition = input$show_r0)
+        toggle(id = "R_0_off", condition = input$show_r0)
+        toggle(id = "R_0_fac", condition = input$show_r0)
+        toggle(id = "R_0_staff", condition = input$show_r0)
+        toggle(id = "R_0_comm", condition = input$show_r0)
+    })
+    
+    observeEvent(input$show_other, {
+        toggle(id = "p_I_community", condition = input$show_other)
+        toggle(id = "p_R_baseline_comm", condition = input$show_other)
+        toggle(id = "lag_start", condition = input$show_other)
+        toggle(id = "q_factor", condition = input$show_other)
+        toggle(id = "quarantineS", condition = input$show_other)
+        toggle(id = "quarantineSbarR", condition = input$show_other)
+        toggle(id = "recovery_time", condition = input$show_other)
+        toggle(id = "test_time", condition = input$show_other)
+        toggle(id = "sensitivity_test_I", condition = input$show_other)
+        toggle(id = "sensitivity_test_E", condition = input$show_other)
+        toggle(id = "exposure_period", condition = input$show_other)
+        toggle(id = "infectious_period_A", condition = input$show_other)
+        toggle(id = "infectious_period_I", condition = input$show_other)
+        toggle(id = "time.max", condition = input$show_other)
     })
     
     cmat.mod = function(mat,n.groups,p.instate){
@@ -480,7 +571,9 @@ server = function(input, output)
             
         }
         
-        if(input$use_infect == 1){
+        use.infect = 0
+        
+        if(use.infect == 1){
             curr.infect.stud = input$curr.infect.stud*sum(N[stud.cols])/sum(N.clemson[stud.cols])
             curr.infect.emp = input$curr.infect.emp*sum(N[emp.cols])/sum(N.clemson[emp.cols])
         } else{
@@ -497,7 +590,7 @@ server = function(input, output)
         
         # Isolation/Quarantine
         
-        use_clemson_iq = input$use_clemson_iq
+        use_clemson_iq = 0
         
         Q.init = Qs.init = QsbarR.init = matrix(0, nrow = length(protect.levels), ncol = n.groups)
         qSbarR = qS = isolation = vector(mode = "list", length = length(protect.levels))
@@ -540,7 +633,9 @@ server = function(input, output)
         
         testing.strat = input$testing_strat
         
-        if(testing.strat == 0){
+        testing.strat.init = input$testing_strat_init
+        
+        if(testing.strat.init == 0){
             
             # Voluntary testing
             I.init = matrix(0, nrow = length(protect.levels), ncol = n.groups)
@@ -604,7 +699,7 @@ server = function(input, output)
                             input$p_recovered_off,
                             input$p_recovered_fac,
                             input$p_recovered_staff,
-                            input$p_recovered_comm*(1-p.recovered.comm))
+                            0.05*(1-p.recovered.comm))
             n.recovered = N*p.recovered
             susceptible = apply(S.init,2,sum)
             
@@ -625,10 +720,10 @@ server = function(input, output)
         # iq.baseline = (Reduce("+", isolation) + Reduce("+", qS))[,-n.groups]
         # iq.baseline = rbind(iq.baseline, apply(iq.baseline,2,sum))
         # rownames(iq.baseline) = c(paste0("Day ",1:recovery.time), "Total")
-        # colnames(iq.baseline) = c("In state", "Out of state", "Off-campus","Faculty","Staff")
+        # colnames(iq.baseline) = c("In state", "Out of state", "Non-residential","Faculty","Staff")
         # iq.baseline = as.data.frame(t(iq.baseline))
         # 
-        # iq.baseline = iq.baseline %>% mutate(Affiliation = c("In state", "Out of state", "Off-campus","Faculty","Staff"))
+        # iq.baseline = iq.baseline %>% mutate(Affiliation = c("In state", "Out of state", "Non-residential","Faculty","Staff"))
         # iq.baseline = iq.baseline %>% select(Affiliation, everything())
         
         ##### Baseline infection
@@ -697,15 +792,13 @@ server = function(input, output)
         protect[1,] = "Reference"
         colnames(protect) = c("Students", "Employee/Community")
         
-        protect = rbind(protect, c(" ", " "))
-        protect = rbind(protect, c(" ", " "))
-        protect = rbind(protect, weeks.since.vax[vax.rows,])
+        # protect = rbind(protect, c(" ", " "))
+        # protect = rbind(protect, c(" ", " "))
+        # protect = rbind(protect, weeks.since.vax[vax.rows,])
         
         protect = as.data.frame(protect)
         protect = protect %>% mutate(Status = c("Unprotected", "Fully vaccinated w/o prev. infection", "Boosted w/o prev. infection", 
-                                                "Previous infection only", "Fully vaccinated w/ prev. infection", "Boosted w/ prev. infection", " ",
-                                                "Average weeks since vaccination", "...Fully vaccinated w/o prev. infection", "...Boosted w/o prev. infection", 
-                                                "...Fully vaccinated w/ prev. infection", "...Boosted w/ prev. infection"))
+                                                "Previous infection only", "Fully vaccinated w/ prev. infection", "Boosted w/ prev. infection"))
         protect = protect %>% select(Status, everything())
         
         #############################################################################################################
@@ -741,7 +834,8 @@ server = function(input, output)
         p.detected.fac = input$p_detected_fac
         p.detected.staff = input$p_detected_staff
         p.detected.comm = input$p_detected_comm
-        p.detected = c(p.detected.in,p.detected.out,p.detected.off,p.detected.fac,p.detected.staff,p.detected.comm)
+        p.detected = c(p.detected.in,p.detected.out,p.detected.off,p.detected.fac,
+                       p.detected.staff,p.detected.comm)
         
         alpha = p.detected # input$p_symptomatic
         
@@ -794,14 +888,17 @@ server = function(input, output)
         prop.test.off = 1/input$prop_test_off
         prop.test.comm = 0.01
         
-        prop.test = c(prop.test.on,
-                      prop.test.on,
-                      prop.test.off,
-                      prop.test.fac,
-                      prop.test.staff,
-                      prop.test.comm)
+        if(testing.strat == 0){
+            prop.test = rep(1/10000, n.groups)
+        } else if(testing.strat == 1){
+            prop.test = c(rep(1/7,n.groups-1),1/10000)
+        } else if(testing.strat == 2){
+            prop.test = c(rep(1/14,n.groups-1),1/10000)
+        } else{
+            prop.test = c(rep(1/30,n.groups-1),1/10000)
+        }
         
-        prop.test = ifelse(prop.test == Inf, 10000, prop.test)
+        #prop.test = ifelse(prop.test == Inf, 10000, prop.test)
         
         tot.test = prop.test*N
         # tot.test.off = prop.test.off*N[4:5]
@@ -815,6 +912,8 @@ server = function(input, output)
         
         positiveTestsCount = matrix(c(1,rep(0,n.groups)), nrow = 1)
         symptomaticCount = matrix(c(0,rep(0,n.groups)), nrow = 1)
+        detectedCount = matrix(c(0,rep(0,n.groups)), nrow = 1)
+        totalCount = matrix(c(0,rep(0,n.groups)), nrow = 1)
         tests.count = matrix(0,nrow = 0, ncol = n.groups)
         
         ####### Add to community
@@ -982,22 +1081,20 @@ server = function(input, output)
             #################################################
             ######Update random testing and tests count
             if(time[i]%%1 == 0 & time[i]>=lag_start){
-                All = rowSums(cbind(newS, newE, newA, newI,
-                                    newvS, newvE, newvA, newvI,
-                                    newbS, newbE, newbA, newbI,
-                                    newpS, newpE, newpA, newpI,
-                                    newpvS, newpvE, newpvA, newpvI,
-                                    newpbS, newpbE, newpbA, newpbI))
-                
-                p.test = tot.test/All # c(tot.test.on/All[1:3],tot.test.off/All[4:5])
-                tests.count = rbind(tests.count, round(p.test * All, 0))
+                # All = rowSums(cbind(newS, newE, newA, newI,
+                #                     newvS, newvE, newvA, newvI,
+                #                     newbS, newbE, newbA, newbI,
+                #                     newpS, newpE, newpA, newpI,
+                #                     newpvS, newpvE, newpvA, newpvI,
+                #                     newpbS, newpbE, newpbA, newpbI))
+                # 
+                # p.test = tot.test/All # c(tot.test.on/All[1:3],tot.test.off/All[4:5])
+                p.test = prop.test
+                #tests.count = rbind(tests.count, round(p.test * All, 0))
                 
                 ATests = oldA*p.test*se
                 oldA = oldA - ATests
                 oldT = oldT + ATests
-                ETests = oldE*p.test*seE
-                oldE = oldE - ETests
-                oldTe = oldTe + ETests 
                 ITests = oldI*p.test*se
                 oldI = oldI - ITests
                 oldT = oldT + ITests
@@ -1005,9 +1102,6 @@ server = function(input, output)
                 vATests = oldvA*p.test*se
                 oldvA = oldvA - vATests
                 oldvT = oldvT + vATests
-                vETests = oldvE*p.test*seE
-                oldvE = oldvE - vETests
-                oldvTe = oldvTe + vETests 
                 vITests = oldvI*p.test*se
                 oldvI = oldvI - vITests
                 oldvT = oldvT + vITests
@@ -1015,9 +1109,6 @@ server = function(input, output)
                 bATests = oldbA*p.test*se
                 oldbA = oldbA - bATests
                 oldbT = oldbT + bATests
-                bETests = oldbE*p.test*seE
-                oldbE = oldbE - bETests
-                oldbTe = oldbTe + bETests 
                 bITests = oldbI*p.test*se
                 oldbI = oldbI - bITests
                 oldbT = oldbT + bITests
@@ -1025,9 +1116,6 @@ server = function(input, output)
                 pATests = oldpA*p.test*se
                 oldpA = oldpA - pATests
                 oldpT = oldpT + pATests
-                pETests = oldpE*p.test*seE
-                oldpE = oldpE - pETests
-                oldpTe = oldpTe + pETests 
                 pITests = oldpI*p.test*se
                 oldpI = oldpI - pITests
                 oldpT = oldpT + pITests
@@ -1035,9 +1123,6 @@ server = function(input, output)
                 pvATests = oldpvA*p.test*se
                 oldpvA = oldpvA - pvATests
                 oldpvT = oldpvT + pvATests
-                pvETests = oldpvE*p.test*seE
-                oldpvE = oldpvE - pvETests
-                oldpvTe = oldpvTe + pvETests 
                 pvITests = oldpvI*p.test*se
                 oldpvI = oldpvI - pvITests
                 oldpvT = oldpvT + pvITests
@@ -1045,22 +1130,74 @@ server = function(input, output)
                 pbATests = oldpbA*p.test*se
                 oldpbA = oldpbA - pbATests
                 oldpbT = oldpbT + pbATests
-                pbETests = oldpbE*p.test*seE
-                oldpbE = oldpbE - pbETests
-                oldpbTe = oldpbTe + pbETests 
                 pbITests = oldpbI*p.test*se
                 oldpbI = oldpbI - pbITests
                 oldpbT = oldpbT + pbITests
                 
-                positiveTestsCount = rbind(positiveTestsCount, c(time[i], (ATests+ETests+ITests+
-                                                                               vATests+vETests+vITests+
-                                                                               bATests+bETests+bITests+
-                                                                               pATests+pETests+pITests+
-                                                                               pvATests+pvETests+pvITests+
-                                                                               pbATests+pbETests+pbITests)))
                 
-                symptomaticCount = rbind(symptomaticCount, c(time[i], (ITests + vITests + bITests +
-                                                                           pITests+pvITests+pbITests)))
+                if(testing.strat == 0){
+                    positiveTestsCount = rbind(positiveTestsCount, c(time[i], (ATests+ITests+
+                                                                                   vATests+vITests+
+                                                                                   bATests+bITests+
+                                                                                   pATests+pITests+
+                                                                                   pvATests+pvITests+
+                                                                                   pbATests+pbITests)))
+                    
+                    symptomaticCount = rbind(symptomaticCount, c(time[i], (ITests + vITests + bITests +
+                                                                               pITests + pvITests + pbITests)))
+                    
+                    detectedCount = rbind(detectedCount, c(time[i], (ITests + vITests + bITests +
+                                                                         pITests+pvITests+pbITests +
+                                                                         ATests + vATests + bATests +
+                                                                         pATests+pvATests+pbATests)))
+                } else{
+                    ETests = oldE*p.test*seE
+                    oldE = oldE - ETests
+                    oldTe = oldTe + ETests 
+                    
+                    vETests = oldvE*p.test*seE
+                    oldvE = oldvE - vETests
+                    oldvTe = oldvTe + vETests 
+                    
+                    bETests = oldbE*p.test*seE
+                    oldbE = oldbE - bETests
+                    oldbTe = oldbTe + bETests 
+                    
+                    pETests = oldpE*p.test*seE
+                    oldpE = oldpE - pETests
+                    oldpTe = oldpTe + pETests 
+                    
+                    pvETests = oldpvE*p.test*seE
+                    oldpvE = oldpvE - pvETests
+                    oldpvTe = oldpvTe + pvETests 
+                    
+                    pbETests = oldpbE*p.test*seE
+                    oldpbE = oldpbE - pbETests
+                    oldpbTe = oldpbTe + pbETests 
+                    
+                    positiveTestsCount = rbind(positiveTestsCount, c(time[i], (ATests+ETests+ITests+
+                                                                                   vATests+vETests+vITests+
+                                                                                   bATests+bETests+bITests+
+                                                                                   pATests+pETests+pITests+
+                                                                                   pvATests+pvETests+pvITests+
+                                                                                   pbATests+pbETests+pbITests)))
+                    
+                    symptomaticCount = rbind(symptomaticCount, c(time[i], (ITests + vITests + bITests +
+                                                                               pITests + pvITests + pbITests) + 
+                                                                     alpha*(ETests + vETests + bETests +
+                                                                                pETests+pvETests+pbETests)))
+                    
+                    detectedCount = rbind(detectedCount, c(time[i], (ITests + vITests + bITests +
+                                                                         pITests+pvITests+pbITests +
+                                                                         ATests + vATests + bATests +
+                                                                         pATests+pvATests+pbATests +
+                                                                         ETests + vETests + bETests +
+                                                                         pETests+pvETests+pbETests)))
+                }
+                
+                #totalCount = rbind(totalCount, detectedCount[nrow(detectedCount),])
+                
+                totalCount = rbind(totalCount, c(time[i],rep(0, n.groups)))
                 
                 #######moving people to quarantine regarding testing results
                 ##
@@ -1076,12 +1213,23 @@ server = function(input, output)
                 newEntryI = newEntryI + gamma*colSums(mat[lastDayID:(i-1),pbIid])*time.step
                 toQuaran = newEntryI*q_factor
                 
-                toQuaran = toQuaran + (ATests+ETests+ITests+
-                                           vATests+vETests+vITests+
-                                           bATests+bETests+bITests+
-                                           pATests+pETests+pITests+
-                                           pvATests+pvETests+pvITests+
-                                           pbATests+pbETests+pbITests)*q_factor
+                if(testing.strat == 0){
+                    toQuaran = toQuaran + (ATests+ITests+
+                                               vATests+vITests+
+                                               bATests+bITests+
+                                               pATests+pITests+
+                                               pvATests+pvITests+
+                                               pbATests+pbITests)*q_factor
+                } else{
+                    toQuaran = toQuaran + (ATests+ETests+ITests+
+                                               vATests+vETests+vITests+
+                                               bATests+bETests+bITests+
+                                               pATests+pETests+pITests+
+                                               pvATests+pvETests+pvITests+
+                                               pbATests+pbETests+pbITests)*q_factor
+                }
+                
+                
                 
                 #print(paste("SBIT detected:",sum(ATests+ETests+ITests)))
                 #print(paste("SBIT voluntary:",sum(max((oldI-mat[(i-1/time.step),Iid]),0))))
@@ -1140,14 +1288,19 @@ server = function(input, output)
                 # print(c(round(sum(toQuaran),0), round(sum(oldS+oldA+oldE+oldI+oldR),0), round(sum(oldR),0)))
                 # ###***End
                 
-                for(kk in 1:length(protect.levels)){
-                    qS[[kk]][1,] = qS[[kk]][1,] + toQuaran*quaranS[kk,]
-                    qSbarR[[kk]][1,] = qS[[kk]][1,] + toQuaran*quaranEAI[kk,]
-                }
+                oldQs = oldQs + toQuaran*quaranS[1,]
+                oldvQs = oldvQs + toQuaran*quaranS[2,]
+                oldbQs = oldbQs + toQuaran*quaranS[3,]
+                oldpQs = oldpQs + toQuaran*quaranS[4,]
+                oldpvQs = oldpvQs + toQuaran*quaranS[5,]
+                oldpbQs = oldpbQs + toQuaran*quaranS[6,]
                 
-                # oldQs = oldQs + toQuaran*quaranProportionS
-                # oldQsbar = oldQsbar+toQuaran*(quaranProportionA+quaranProportionE+quaranProportionI)
-                # oldQruk = oldQruk+toQuaran*quaranProportionRuk
+                oldQsbarR = oldQsbarR + toQuaran*quaranEAI[1,]
+                oldvQsbarR = oldvQsbarR + toQuaran*quaranEAI[2,]
+                oldbQsbarR = oldbQsbarR + toQuaran*quaranEAI[3,]
+                oldpQsbarR = oldpQsbarR + toQuaran*quaranEAI[4,]
+                oldpvQsbarR = oldpvQsbarR + toQuaran*quaranEAI[5,]
+                oldpbQsbarR = oldpbQsbarR + toQuaran*quaranEAI[6,]
                 
                 oldS = oldS - toQuaran*quaranProportionS
                 oldE = oldE - toQuaran*quaranProportionE
@@ -1186,7 +1339,9 @@ server = function(input, output)
                                     .75,.75,.75,.67,.67,.67,
                                     2,  2,  2,1.5,1.5,1.5), ncol = n.groups, byrow = T)
             
-            scale.factor = apply(scale.factor,2,function(x){ 1/ (x %*% c(5,5,20,12)/42) })
+            scale.factor = apply(scale.factor,2,function(x){1/ (x %*% c(5,5,20,12)/42)})
+            
+            #scale.factor = rep(1.0,6)
             
             if((weekdays(today()+time[i]) %notin% c("Saturday","Sunday")) & (time[i] %% 1 == 0)){
                 # a. if weekday and first time step, classroom time  
@@ -1230,9 +1385,9 @@ server = function(input, output)
                 # Contact matrix (by row): on-campus, off-campus, faculty, staff, community
                 contact.mat = matrix(c(.95, .05, .00, .00, .00,
                                        .05, .95, .00, .00, .00,
-                                       .00, .00, .75, .00, .25,
-                                       .00, .00, .00, .75, .25,
-                                       .02, .02, .02, .02, .92),n.groups-1,n.groups-1,byrow=T)
+                                       .00, .00, .95, .00, .05,
+                                       .00, .00, .00, .95, .05,
+                                       .01, .01, .01, .01, .96),n.groups-1,n.groups-1,byrow=T)
                 
                 contact.mat = cmat.mod(contact.mat,n.groups,p.instate)
                 
@@ -1249,9 +1404,9 @@ server = function(input, output)
                 
                 contact.mat = matrix(c(.85, .10, .00, .00, .05,
                                        .05, .85, .00, .00, .10,
-                                       .00, .00, .50, .00, .50,
-                                       .00, .00, .00, .50, .50,
-                                       .03, .03, .03, .03, .88),n.groups-1,n.groups-1,byrow=T)
+                                       .00, .00, .90, .00, .10,
+                                       .00, .00, .00, .90, .10,
+                                       .02, .02, .02, .02, .92),n.groups-1,n.groups-1,byrow=T)
                 
                 contact.mat = cmat.mod(contact.mat,n.groups,p.instate)
                 
@@ -1277,207 +1432,113 @@ server = function(input, output)
             
             ##### Unprotected
             
-            qS.temp = qS[[1]]
-            qS[[1]][1,] = qS.temp[1,] - qS.temp[1,]*time.step
-            for(it in 2:nrow(qS.temp)){
-                qS[[1]][it,] = qS.temp[it,] + (qS.temp[it-1,] - qS.temp[it,])*time.step
-            }
-            newQs = colSums(qS[[1]])
+            newQs = oldQs - oldQs/quarantineSbarR*time.step
             
-            newS = oldS + (qS.temp[it,]                                 -beta1*c.mat%*%(p.AIT*oldS)                 )*time.step
+            newS = oldS + (oldQs/quarantineSbarR                        -beta1*c.mat%*%(p.AIT*oldS)                 )*time.step
             newE = oldE + (beta1*c.mat%*%(p.AIT*oldS)                   -(sigma)*oldE                               )*time.step
             newA = oldA + ((1-alpha)*sigma*oldE                         -(phi)*oldA                                 )*time.step
             newT = oldT + (                                             -kappa*oldT                                 )*time.step
             newTe= oldTe+ (                                             -kappa*oldTe                                )*time.step
             newI = oldI + (alpha*sigma*oldE                             -gamma*oldI                                 )*time.step
             
-            Q.temp = isolation[[1]]
-            isolation[[1]][1,] = Q.temp[1,] + (kappa*(oldTe+oldT)+gamma*oldI - Q.temp[1,])*time.step
-            for(it in 2:nrow(isolation[[1]])){
-                isolation[[1]][it,] = Q.temp[it,] + (Q.temp[it-1,] - Q.temp[it,])*time.step
-            }
-            newQ = colSums(isolation[[1]])
+            newQ = oldQ + (kappa*(oldT + oldTe) + gamma*oldI - oldQ/recovery.time)*time.step
+            newQsbarR = oldQsbarR - oldQsbarR/quarantineSbarR*time.step
             
-            
-            qSbarR.temp = qSbarR[[1]]
-            qSbarR[[1]][1,] = qSbarR.temp[1,] - qSbarR.temp[1,]*time.step
-            for(it in 2:nrow(qSbarR[[1]])){
-                qSbarR[[1]][it,] = qSbarR.temp[it,] + (qSbarR.temp[it-1,] - qSbarR.temp[it,])*time.step
-            }
-            newQsbarR = colSums(qSbarR[[1]])
-            
-            newR = oldR + (Q.temp[nrow(Q.temp),] + qSbarR.temp[nrow(qSbarR.temp),] + phi*oldA)*time.step
+            newR = oldR + (oldQ/recovery.time + oldQsbarR/quarantineSbarR + phi*oldA)*time.step
             
             ##### mRNA, no previous infection
             
-            qS.temp = qS[[2]]
-            qS[[2]][1,] = qS.temp[1,] - qS.temp[1,]*time.step
-            for(it in 2:nrow(qS.temp)){
-                qS[[2]][it,] = qS.temp[it,] + (qS.temp[it-1,] - qS.temp[it,])*time.step
-            }
-            newvQs = colSums(qS[[2]])
+            newvQs = oldvQs - oldvQs/quarantineSbarR*time.step
             
-            newvS = oldvS + (qS.temp[it,]                                 -beta2*c.mat%*%(p.AIT*oldvS)                 )*time.step
+            newvS = oldvS + (oldvQs/quarantineSbarR                       -beta2*c.mat%*%(p.AIT*oldvS)                 )*time.step
             newvE = oldvE + (beta2*c.mat%*%(p.AIT*oldvS)                  -(sigma)*oldvE                               )*time.step
             newvA = oldvA + ((1-alpha)*sigma*oldvE                        -(phi)*oldvA                                 )*time.step
             newvT = oldvT + (                                             -kappa*oldvT                                 )*time.step
             newvTe= oldvTe+ (                                             -kappa*oldvTe                                )*time.step
             newvI = oldvI + (alpha*sigma*oldvE                            -gamma*oldvI                                 )*time.step
             
-            Q.temp = isolation[[2]]
-            isolation[[2]][1,] = Q.temp[1,] + (kappa*(oldvTe+oldvT)+gamma*oldvI - Q.temp[1,])*time.step
-            for(it in 2:nrow(isolation[[2]])){
-                isolation[[2]][it,] = Q.temp[it,] + (Q.temp[it-1,] - Q.temp[it,])*time.step
-            }
-            newvQ = colSums(isolation[[2]])
+            newvQ = oldvQ + (kappa*(oldvT + oldvTe) + gamma*oldvI - oldvQ/recovery.time)*time.step
+            newvQsbarR = oldvQsbarR - oldvQsbarR/quarantineSbarR*time.step
             
-            
-            qSbarR.temp = qSbarR[[2]]
-            qSbarR[[2]][1,] = qSbarR.temp[1,] - qSbarR.temp[1,]*time.step
-            for(it in 2:nrow(qSbarR[[2]])){
-                qSbarR[[2]][it,] = qSbarR.temp[it,] + (qSbarR.temp[it-1,] - qSbarR.temp[it,])*time.step
-            }
-            newvQsbarR = colSums(qSbarR[[2]])
-            
-            newvR = oldvR + (Q.temp[nrow(Q.temp),] + qSbarR.temp[nrow(qSbarR.temp),] + phi*oldvA)*time.step
+            newvR = oldvR + (oldvQ/recovery.time + oldvQsbarR/quarantineSbarR + phi*oldvA)*time.step
             
             ##### Boosted, no previous infection
             
-            qS.temp = qS[[3]]
-            qS[[3]][1,] = qS.temp[1,] - qS.temp[1,]*time.step
-            for(it in 2:nrow(qS.temp)){
-                qS[[3]][it,] = qS.temp[it,] + (qS.temp[it-1,] - qS.temp[it,])*time.step
-            }
-            newbQs = colSums(qS[[3]])
+            newbQs = oldbQs - oldbQs/quarantineSbarR*time.step
             
-            newbS = oldbS + (qS.temp[it,]                                -beta3*c.mat%*%(p.AIT*oldbS)                 )*time.step
-            newbE = oldbE + (beta3*c.mat%*%(p.AIT*oldbS)                 -(sigma)*oldbE                               )*time.step
-            newbA = oldbA + ((1-alpha)*sigma*oldbE                       -(phi)*oldbA                                 )*time.step
-            newbT = oldbT + (                                            -kappa*oldbT                                 )*time.step
-            newbTe= oldbTe+ (                                            -kappa*oldbTe                                )*time.step
-            newbI = oldbI + (alpha*sigma*oldbE                           -gamma*oldbI                                 )*time.step
+            newbS = oldbS + (oldbQs/quarantineSbarR                       -beta3*c.mat%*%(p.AIT*oldbS)                 )*time.step
+            newbE = oldbE + (beta3*c.mat%*%(p.AIT*oldbS)                  -(sigma)*oldbE                               )*time.step
+            newbA = oldbA + ((1-alpha)*sigma*oldbE                        -(phi)*oldbA                                 )*time.step
+            newbT = oldbT + (                                             -kappa*oldbT                                 )*time.step
+            newbTe= oldbTe+ (                                             -kappa*oldbTe                                )*time.step
+            newbI = oldbI + (alpha*sigma*oldbE                            -gamma*oldbI                                 )*time.step
             
-            Q.temp = isolation[[3]]
-            isolation[[3]][1,] = Q.temp[1,] + (kappa*(oldbTe+oldbT)+gamma*oldbI - Q.temp[1,])*time.step
-            for(it in 2:nrow(isolation[[3]])){
-                isolation[[3]][it,] = Q.temp[it,] + (Q.temp[it-1,] - Q.temp[it,])*time.step
-            }
-            newbQ = colSums(isolation[[3]])
+            newbQ = oldbQ + (kappa*(oldbT + oldbTe) + gamma*oldbI - oldbQ/recovery.time)*time.step
+            newbQsbarR = oldbQsbarR - oldbQsbarR/quarantineSbarR*time.step
             
-            
-            qSbarR.temp = qSbarR[[3]]
-            qSbarR[[3]][1,] = qSbarR.temp[1,] - qSbarR.temp[1,]*time.step
-            for(it in 2:nrow(qSbarR[[3]])){
-                qSbarR[[3]][it,] = qSbarR.temp[it,] + (qSbarR.temp[it-1,] - qSbarR.temp[it,])*time.step
-            }
-            newbQsbarR = colSums(qSbarR[[3]])
-            
-            newbR = oldbR + (Q.temp[nrow(Q.temp),] + qSbarR.temp[nrow(qSbarR.temp),] + phi*oldbA)*time.step
+            newbR = oldbR + (oldbQ/recovery.time + oldbQsbarR/quarantineSbarR + phi*oldbA)*time.step
             
             ##### Previously infected only
             
-            qS.temp = qS[[4]]
-            qS[[4]][1,] = qS.temp[1,] - qS.temp[1,]*time.step
-            for(it in 2:nrow(qS.temp)){
-                qS[[4]][it,] = qS.temp[it,] + (qS.temp[it-1,] - qS.temp[it,])*time.step
-            }
-            newpQs = colSums(qS[[4]])
+            newpQs = oldpQs - oldpQs/quarantineSbarR*time.step
             
-            newpS = oldpS + (qS.temp[it,]                                -beta4*c.mat%*%(p.AIT*oldpS)                 )*time.step
-            newpE = oldpE + (beta4*c.mat%*%(p.AIT*oldpS)                 -(sigma)*oldpE                               )*time.step
-            newpA = oldpA + ((1-alpha)*sigma*oldpE                       -(phi)*oldpA                                 )*time.step
-            newpT = oldpT + (                                            -kappa*oldpT                                 )*time.step
-            newpTe= oldpTe+ (                                            -kappa*oldpTe                                )*time.step
-            newpI = oldpI + (alpha*sigma*oldpE                           -gamma*oldpI                                 )*time.step
+            newpS = oldpS + (oldpQs/quarantineSbarR                       -beta4*c.mat%*%(p.AIT*oldpS)                 )*time.step
+            newpE = oldpE + (beta4*c.mat%*%(p.AIT*oldpS)                  -(sigma)*oldpE                               )*time.step
+            newpA = oldpA + ((1-alpha)*sigma*oldpE                        -(phi)*oldpA                                 )*time.step
+            newpT = oldpT + (                                             -kappa*oldpT                                 )*time.step
+            newpTe= oldpTe+ (                                             -kappa*oldpTe                                )*time.step
+            newpI = oldpI + (alpha*sigma*oldpE                            -gamma*oldpI                                 )*time.step
             
-            Q.temp = isolation[[4]]
-            isolation[[4]][1,] = Q.temp[1,] + (kappa*(oldpTe+oldpT)+gamma*oldpI - Q.temp[1,])*time.step
-            for(it in 2:nrow(isolation[[4]])){
-                isolation[[4]][it,] = Q.temp[it,] + (Q.temp[it-1,] - Q.temp[it,])*time.step
-            }
-            newpQ = colSums(isolation[[4]])
+            newpQ = oldpQ + (kappa*(oldpT + oldpTe) + gamma*oldpI - oldpQ/recovery.time)*time.step
+            newpQsbarR = oldpQsbarR - oldpQsbarR/quarantineSbarR*time.step
             
-            
-            qSbarR.temp = qSbarR[[4]]
-            qSbarR[[4]][1,] = qSbarR.temp[1,] - qSbarR.temp[1,]*time.step
-            for(it in 2:nrow(qSbarR[[4]])){
-                qSbarR[[4]][it,] = qSbarR.temp[it,] + (qSbarR.temp[it-1,] - qSbarR.temp[it,])*time.step
-            }
-            newpQsbarR = colSums(qSbarR[[4]])
-            
-            newpR = oldpR + (Q.temp[nrow(Q.temp),] + qSbarR.temp[nrow(qSbarR.temp),] + phi*oldpA)*time.step
+            newpR = oldpR + (oldpQ/recovery.time + oldpQsbarR/quarantineSbarR + phi*oldpA)*time.step
             
             ##### mRNA, previously infected
             
-            qS.temp = qS[[5]]
-            qS[[5]][1,] = qS.temp[1,] - qS.temp[1,]*time.step
-            for(it in 2:nrow(qS.temp)){
-                qS[[5]][it,] = qS.temp[it,] + (qS.temp[it-1,] - qS.temp[it,])*time.step
-            }
-            newpvQs = colSums(qS[[5]])
+            newpvQs = oldpvQs - oldpvQs/quarantineSbarR*time.step
             
-            newpvS = oldpvS + (qS.temp[it,]                                 -beta5*c.mat%*%(p.AIT*oldpvS)                 )*time.step
-            newpvE = oldpvE + (beta5*c.mat%*%(p.AIT*oldpvS)                 -(sigma)*oldpvE                               )*time.step
-            newpvA = oldpvA + ((1-alpha)*sigma*oldpvE                       -(phi)*oldpvA                                 )*time.step
+            newpvS = oldpvS + (oldpvQs/quarantineSbarR                       -beta5*c.mat%*%(p.AIT*oldpvS)                 )*time.step
+            newpvE = oldpvE + (beta5*c.mat%*%(p.AIT*oldpvS)                  -(sigma)*oldpvE                               )*time.step
+            newpvA = oldpvA + ((1-alpha)*sigma*oldpvE                        -(phi)*oldpvA                                 )*time.step
             newpvT = oldpvT + (                                             -kappa*oldpvT                                 )*time.step
             newpvTe= oldpvTe+ (                                             -kappa*oldpvTe                                )*time.step
-            newpvI = oldpvI + (alpha*sigma*oldpvE                           -gamma*oldpvI                                 )*time.step
+            newpvI = oldpvI + (alpha*sigma*oldpvE                            -gamma*oldpvI                                 )*time.step
             
-            Q.temp = isolation[[5]]
-            isolation[[5]][1,] = Q.temp[1,] + (kappa*(oldpvTe+oldpvT)+gamma*oldpvI - Q.temp[1,])*time.step
-            for(it in 2:nrow(isolation[[5]])){
-                isolation[[5]][it,] = Q.temp[it,] + (Q.temp[it-1,] - Q.temp[it,])*time.step
-            }
-            newpvQ = colSums(isolation[[5]])
+            newpvQ = oldpvQ + (kappa*(oldpvT + oldpvTe) + gamma*oldpvI - oldpvQ/recovery.time)*time.step
+            newpvQsbarR = oldpvQsbarR - oldpvQsbarR/quarantineSbarR*time.step
             
-            
-            qSbarR.temp = qSbarR[[5]]
-            qSbarR[[5]][1,] = qSbarR.temp[1,] - qSbarR.temp[1,]*time.step
-            for(it in 2:nrow(qSbarR[[5]])){
-                qSbarR[[5]][it,] = qSbarR.temp[it,] + (qSbarR.temp[it-1,] - qSbarR.temp[it,])*time.step
-            }
-            newpvQsbarR = colSums(qSbarR[[5]])
-            
-            newpvR = oldpvR + (Q.temp[nrow(Q.temp),] + qSbarR.temp[nrow(qSbarR.temp),] + phi*oldpvA)*time.step
+            newpvR = oldpvR + (oldpvQ/recovery.time + oldpvQsbarR/quarantineSbarR + phi*oldpvA)*time.step
             
             ##### Boosted, previously infected
             
-            qS.temp = qS[[6]]
-            qS[[6]][1,] = qS.temp[1,] - qS.temp[1,]*time.step
-            for(it in 2:nrow(qS.temp)){
-                qS[[6]][it,] = qS.temp[it,] + (qS.temp[it-1,] - qS.temp[it,])*time.step
-            }
-            newpbQs = colSums(qS[[6]])
+            newpbQs = oldpbQs - oldpbQs/quarantineSbarR*time.step
             
-            newpbS = oldpbS + (qS.temp[it,]                                 -beta6*c.mat%*%(p.AIT*oldpbS)                 )*time.step
-            newpbE = oldpbE + (beta6*c.mat%*%(p.AIT*oldpbS)                 -(sigma)*oldpbE                               )*time.step
-            newpbA = oldpbA + ((1-alpha)*sigma*oldpbE                       -(phi)*oldpbA                                 )*time.step
+            newpbS = oldpbS + (oldpbQs/quarantineSbarR                       -beta6*c.mat%*%(p.AIT*oldpbS)                 )*time.step
+            newpbE = oldpbE + (beta6*c.mat%*%(p.AIT*oldpbS)                  -(sigma)*oldpbE                               )*time.step
+            newpbA = oldpbA + ((1-alpha)*sigma*oldpbE                        -(phi)*oldpbA                                 )*time.step
             newpbT = oldpbT + (                                             -kappa*oldpbT                                 )*time.step
             newpbTe= oldpbTe+ (                                             -kappa*oldpbTe                                )*time.step
-            newpbI = oldpbI + (alpha*sigma*oldpbE                           -gamma*oldpbI                                 )*time.step
+            newpbI = oldpbI + (alpha*sigma*oldpbE                            -gamma*oldpbI                                 )*time.step
             
-            Q.temp = isolation[[6]]
-            isolation[[6]][1,] = Q.temp[1,] + (kappa*(oldpbTe+oldpbT)+gamma*oldpbI - Q.temp[1,])*time.step
-            for(it in 2:nrow(isolation[[6]])){
-                isolation[[6]][it,] = Q.temp[it,] + (Q.temp[it-1,] - Q.temp[it,])*time.step
-            }
-            newpbQ = colSums(isolation[[6]])
+            newpbQ = oldpbQ + (kappa*(oldpbT + oldpbTe) + gamma*oldpbI - oldpbQ/recovery.time)*time.step
+            newpbQsbarR = oldpbQsbarR - oldpbQsbarR/quarantineSbarR*time.step
             
-            
-            qSbarR.temp = qSbarR[[6]]
-            qSbarR[[6]][1,] = qSbarR.temp[1,] - qSbarR.temp[1,]*time.step
-            for(it in 2:nrow(qSbarR[[6]])){
-                qSbarR[[6]][it,] = qSbarR.temp[it,] + (qSbarR.temp[it-1,] - qSbarR.temp[it,])*time.step
-            }
-            newpbQsbarR = colSums(qSbarR[[6]])
-            
-            newpbR = oldpbR + (Q.temp[nrow(Q.temp),] + qSbarR.temp[nrow(qSbarR.temp),] + phi*oldpbA)*time.step
+            newpbR = oldpbR + (oldpbQ/recovery.time + oldpbQsbarR/quarantineSbarR + phi*oldpbA)*time.step
             
             ##### Count symptomatic infections
             
             symptomaticCount[nrow(symptomaticCount),-1] = symptomaticCount[nrow(symptomaticCount),-1] +
                 gamma*time.step*(oldI+oldvI+oldbI+oldpI+oldpvI+oldpbI)
             
+            detectedCount[nrow(detectedCount),-1] = detectedCount[nrow(detectedCount),-1] +
+                gamma*time.step*(oldI+oldvI+oldbI+oldpI+oldpvI+oldpbI)
+            
+            totalCount[nrow(totalCount),-1] = totalCount[nrow(totalCount),-1] +
+                sigma*time.step*(oldE+oldvE+oldbE+oldpE+oldpvE+oldpbE)
+                #gamma*time.step*(oldI+oldvI+oldbI+oldpI+oldpvI+oldpbI) + 
+                #phi*time.step*(oldA+oldvA+oldbA+oldpA+oldpvA+oldpbA)
+                
             ##### Bind with mat
             
             mat = rbind(mat, c(time[i], newS, newE, newA, newI, newT, newTe, newQ, newQs, newQsbarR, newR,
@@ -1488,6 +1549,12 @@ server = function(input, output)
                                newpbS, newpbE, newpbA, newpbI, newpbT, newpbTe, newpbQ, newpbQs, newpbQsbarR, newpbR))
             
         }
+        # 
+        # cat("Symptomatic \n")
+        # print(symptomaticCount)
+        # 
+        # cat("Detected \n")
+        # print(detectedCount)
         
         colnames(mat) = NULL
         
@@ -1510,51 +1577,41 @@ server = function(input, output)
         
         dayID = which(time%%1 == 0)
         weekID = which(time%%7 == 0)[1:n.weeks]
-        final.bar.data = final.symptomatic = NULL
+        final.bar.data = final.symptomatic = final.detected = NULL
         
         for(k in 1:(n.groups-1)){
             curr = data.frame(mat.by.affl[[k]])
             
-            Infection1 = curr[dayID[-1],"S"]+curr[dayID[-1],"Qs"]+
-                curr[dayID[-1],"vS"]+curr[dayID[-1],"vQs"]+
-                curr[dayID[-1],"bS"]+curr[dayID[-1],"bQs"]+
-                curr[dayID[-1],"pS"]+curr[dayID[-1],"pQs"]+
-                curr[dayID[-1],"pvS"]+curr[dayID[-1],"pvQs"]+
-                curr[dayID[-1],"pbS"]+curr[dayID[-1],"pbQs"]
-            
-            Infection0 = curr[dayID[-length(dayID)],"S"]+curr[dayID[-length(dayID)],"Qs"]+
-                curr[dayID[-length(dayID)],"vS"]+curr[dayID[-length(dayID)],"vQs"]+
-                curr[dayID[-length(dayID)],"bS"]+curr[dayID[-length(dayID)],"bQs"]+
-                curr[dayID[-length(dayID)],"pS"]+curr[dayID[-length(dayID)],"pQs"]+
-                curr[dayID[-length(dayID)],"pvS"]+curr[dayID[-length(dayID)],"pvQs"]+
-                curr[dayID[-length(dayID)],"pbS"]+curr[dayID[-length(dayID)],"pbQs"]
-            
-            newInfection = Infection0 - Infection1
-            
             # creating variable for number of weekly new infections
             #n.weeks=time.max/7
             newWeeklyInfection=numeric(n.weeks)
-            newWeeklyInfection[1]=sum(newInfection[1:7])
+            newWeeklyInfection[1]=sum(totalCount[1:8,k+1]) - sum(E.init[,k])*seE
             newSymptomatic=numeric(n.weeks)
-            newSymptomatic[1]=sum(symptomaticCount[1:8,k+1]) - sum(I.init[,k])
+            newSymptomatic[1]=sum(symptomaticCount[1:8,k+1]) - sum(I.init[,k])*se
+            newDetected = numeric(n.weeks)
+            newDetected[1]=sum(detectedCount[1:8,k+1]) - sum(I.init[,k])*se # - sum(A.init[,k])*se - sum(E.init[,k])*seE
+            
             for(i in 2:n.weeks){
-                newWeeklyInfection[i] = sum(newInfection[(7*(i-1)+1):(7*i)])
+                newWeeklyInfection[i] = sum(totalCount[(7*(i-1)+1):(7*i),k+1])
                 newSymptomatic[i] = sum(symptomaticCount[(7*(i-1)+2):(7*i+1),k+1])
+                newDetected[i] = sum(detectedCount[(7*(i-1)+2):(7*i+1),k+1])
             }
             
             if(k == 2){
                 final.bar.data = final.bar.data + newWeeklyInfection
                 final.symptomatic = final.symptomatic + newSymptomatic
+                final.detected = final.detected + newDetected
             } else{
                 final.bar.data = c(final.bar.data,newWeeklyInfection)
                 final.symptomatic = c(final.symptomatic, newSymptomatic)
+                final.detected = c(final.detected, newDetected)
             }
         }
         
         if(out.type == 0){
             week = rep(1:n.weeks,n.groups-2)
-            subject = rep(c("On-campus", "Off-campus", "Faculty", "Staff"), each=n.weeks)
-            subject = factor(subject, levels = c("On-campus", "Off-campus", "Faculty", "Staff"))
+            subject = rep(c("Residential", "Non-residential", "Faculty", "Staff"), each=n.weeks)
+            subject = factor(subject, levels = c("Residential", "Non-residential", "Faculty", "Staff"))
             bar.data = data.frame(week = week, subject = subject, new.pos.cases = final.bar.data)
             tot.cases = (bar.data %>% group_by(subject) %>% summarize(total.cases = round(sum(new.pos.cases))))$total.cases
             
@@ -1646,8 +1703,8 @@ server = function(input, output)
         
         if(out.type == 0){
             week = rep(1:n.weeks,n.groups-2)
-            subject = rep(c("On-campus", "Off-campus", "Faculty", "Staff"), each=n.weeks)
-            subject = factor(subject, levels = c("On-campus", "Off-campus", "Faculty", "Staff"))
+            subject = rep(c("Residential", "Non-residential", "Faculty", "Staff"), each=n.weeks)
+            subject = factor(subject, levels = c("Residential", "Non-residential", "Faculty", "Staff"))
             bar.data = data.frame(week = week, subject = subject, new.pos.cases = final.symptomatic)
             tot.cases = (bar.data %>% group_by(subject) %>% summarize(total.cases = round(sum(new.pos.cases))))$total.cases
             
@@ -1734,6 +1791,98 @@ server = function(input, output)
                       axis.title.y = element_text(size=20))
         }
         
+        ### Detected infections
+        
+        if(out.type == 0){
+            week = rep(1:n.weeks,n.groups-2)
+            subject = rep(c("Residential", "Non-residential", "Faculty", "Staff"), each=n.weeks)
+            subject = factor(subject, levels = c("Residential", "Non-residential", "Faculty", "Staff"))
+            bar.data = data.frame(week = week, subject = subject, new.pos.cases = final.detected)
+            tot.cases = (bar.data %>% group_by(subject) %>% summarize(total.cases = round(sum(new.pos.cases))))$total.cases
+            
+            ### prevalence estimate and total detected infections
+            
+            bar.data = bar.data %>% mutate(prevalence = paste(round(100*new.pos.cases / rep(c(N[1]+N[2],N[3],N[4],N[5]),
+                                                                                            each=n.weeks),1),"%",sep=""))
+            
+            ### bar plot
+            
+            bar_cols = brewer.pal(n = 5, name = "Dark2")
+            bar_cols = c(bar_cols[1], bar_cols[2], bar_cols[3], bar_cols[4])
+            
+            p7 = ggplot(bar.data, aes(x=week, y=new.pos.cases, fill=subject)) + 
+                geom_bar(stat='identity', position='dodge') + 
+                geom_text(aes(label=paste0(round(new.pos.cases), " (", prevalence, ")"),colour=subject,fontface="bold"),
+                          angle = 90, size=7,position=position_dodge(width=0.9), vjust=-0.45, hjust = -0.2, show.legend=FALSE) +
+                scale_colour_manual(values=bar_cols) +
+                scale_x_continuous(name="Week", breaks=1:n.weeks) +
+                scale_y_continuous(name="New detected cases",limits = c(0,5.5*max(bar.data$new.pos.cases))) +
+                #scale_fill_manual(name="Summary : ", 
+                #                    labels=c(paste0("Total infected on-campus students = ", total.infections[1]+total.infections[2]),
+                #                             paste0("Total infected off-campus students = ",total.infections[3]), 
+                #                             paste0("Total infected faculty = "             , total.infections[4]),
+                #                             paste0("Total infected staff = ",total.infections[5])), values = bar_cols)+
+                scale_fill_manual(name="Summary : ", 
+                                  labels=c(paste0("Residential students: ", tot.cases[1], " (", format(round(tot.cases[1]/sum(N[1:2]),3)*100, nsmall = 1), "%)"),
+                                           paste0("Non-residential students: ", tot.cases[2], " (", format(round(tot.cases[2]/sum(N[3]),3)*100, nsmall = 1), "%)"),
+                                           paste0("Faculty: ", tot.cases[3], " (", format(round(tot.cases[3]/sum(N[4]),3)*100, nsmall = 1), "%)"),
+                                           paste0("Staff: ", tot.cases[4], " (", format(round(tot.cases[4]/sum(N[5]),3)*100, nsmall = 1), "%)")
+                                  ),values = bar_cols)+
+                theme(legend.position = c(.75,.75), 
+                      legend.direction = "vertical",
+                      legend.key.size = unit(1, 'cm'),
+                      legend.title = element_text(size = 20),
+                      legend.text = element_text(size=20),
+                      axis.text.x = element_text(size=20),
+                      axis.text.y = element_text(size=20),
+                      axis.title.x = element_text(size=20),
+                      axis.title.y = element_text(size=20))
+        } else{
+            final.detected.2 = tapply(final.detected, INDEX = c(rep(1:n.weeks,2), rep((n.weeks+1):(2*n.weeks),2)), sum)
+            
+            week = rep(1:n.weeks,times = 2)
+            subject = rep(c("Students", "Employees"), each=n.weeks)
+            subject = factor(subject, levels = c("Students", "Employees"))
+            bar.data = data.frame(week = week, subject = subject, new.pos.cases = final.detected.2)
+            tot.cases.2 = (bar.data %>% group_by(subject) %>% summarize(total.cases = round(sum(new.pos.cases))))$total.cases
+            
+            ### prevalence estimate and total detected infections
+            
+            bar.data = bar.data %>% mutate(prevalence = paste(round(100*new.pos.cases / rep(c(N[1]+N[2]+N[3],N[4]+N[5]),
+                                                                                            each=n.weeks),1),"%",sep=""))
+            
+            ### bar plot
+            
+            bar_cols = brewer.pal(n = 5, name = "Dark2")
+            bar_cols = c(bar_cols[1], bar_cols[2], bar_cols[3], bar_cols[4])
+            
+            p7 = ggplot(bar.data, aes(x=week, y=new.pos.cases, fill=subject)) + 
+                geom_bar(stat='identity', position='dodge') + 
+                geom_text(aes(label=paste0(round(new.pos.cases), " (", prevalence, ")"),colour=subject,fontface="bold"),
+                          angle = 90, size=7,position=position_dodge(width=0.9), vjust=-0.45, hjust = -0.2, show.legend=FALSE) +
+                scale_colour_manual(values=bar_cols) +
+                scale_x_continuous(name="Week", breaks=1:n.weeks) +
+                scale_y_continuous(name="New detected cases",limits = c(0,5.5*max(bar.data$new.pos.cases))) +
+                #scale_fill_manual(name="Summary : ", 
+                #                    labels=c(paste0("Total infected on-campus students = ", total.infections[1]+total.infections[2]),
+                #                             paste0("Total infected off-campus students = ",total.infections[3]), 
+                #                             paste0("Total infected faculty = "             , total.infections[4]),
+                #                             paste0("Total infected staff = ",total.infections[5])), values = bar_cols)+
+                scale_fill_manual(name="Summary : ", 
+                                  labels=c(paste0("Students: ", tot.cases.2[1], " (", format(round(tot.cases.2[1]/sum(N[1:3]),3)*100, nsmall = 1), "%)"),
+                                           paste0("Employees: ", tot.cases.2[2], " (", format(round(tot.cases.2[2]/sum(N[4:5]),3)*100, nsmall = 1), "%)")
+                                  ),values = bar_cols)+
+                theme(legend.position = c(.75,.75), 
+                      legend.direction = "vertical",
+                      legend.key.size = unit(1, 'cm'),
+                      legend.title = element_text(size = 20),
+                      legend.text = element_text(size=20),
+                      axis.text.x = element_text(size=20),
+                      axis.text.y = element_text(size=20),
+                      axis.title.x = element_text(size=20),
+                      axis.title.y = element_text(size=20))
+        }
+        
         ### Isolation plot: Students
         
         iso.outofstate = mat.by.affl[[2]][dayID,"Q"] + mat.by.affl[[2]][dayID,"vQ"] + mat.by.affl[[2]][dayID,"bQ"] + 
@@ -1757,7 +1906,7 @@ server = function(input, output)
         bar_cols = c(bar_cols[1], bar_cols[2], bar_cols[3])
         
         p3 =ggplot(IsoPlot, aes(x=dayID, y=NumberOfIsolation, color=subject, group = subject))+
-            geom_line(size=1.25)+
+            geom_line(linewidth=1.25)+
             scale_x_continuous(name="Day")+
             scale_y_continuous(name="Number in Isolation",limits = c(0,ceiling(max(IsoMax))+1))+
             scale_color_manual(name="Summary : ", values = bar_cols, 
@@ -1807,7 +1956,7 @@ server = function(input, output)
         
         
         p4 = ggplot(IQPlot, aes(x=dayID, y=NumberOfIsolation, color=subject, group = subject))+
-            geom_line(size=1.25)+
+            geom_line(linewidth=1.25)+
             scale_x_continuous(name="Day")+
             scale_y_continuous(name="Number in I/Q",limits = c(0,ceiling(max(IQMax))+2))+
             scale_color_manual(name="Summary : ", values = bar_cols, 
@@ -1843,7 +1992,7 @@ server = function(input, output)
         
         
         p5 = ggplot(IsoPlot2, aes(x=dayID, y=NumberOfIsolation, color=subject, group = subject))+
-            geom_line(size=1.25)+
+            geom_line(linewidth=1.25)+
             scale_x_continuous(name="Day")+
             scale_y_continuous(name="Number in I/Q",limits = c(0,ceiling(max(IsoMax2))+2))+
             scale_color_manual(name="Summary : ", values = bar_cols, 
@@ -1882,7 +2031,7 @@ server = function(input, output)
         bar_cols = c(bar_cols[1], bar_cols[2], bar_cols[3])
         
         p6 = ggplot(IQPlot2, aes(x=dayID, y=NumberOfIsolation, color=subject, group = subject))+
-            geom_line(size=1.25)+
+            geom_line(linewidth=1.25)+
             scale_x_continuous(name="Day")+
             scale_y_continuous(name="Number in I/Q",limits = c(0,ceiling(max(IQMax2))+2))+
             scale_color_manual(name="Summary : ", values = bar_cols, 
@@ -1899,7 +2048,7 @@ server = function(input, output)
                   axis.title.y = element_text(size=20))
         
         
-        return(list("p1" = p1, "p2" = p2, "p3" = p3, "p4" = p4, "p5" = p5, "p6" = p6, "summary" = sum.stats.tab, 
+        return(list("p1" = p1, "p2" = p2, "p3" = p3, "p4" = p4, "p5" = p5, "p6" = p6, "p7" = p7,"summary" = sum.stats.tab, 
                     "protect_summary" = protect))
     }
     
@@ -1912,16 +2061,18 @@ server = function(input, output)
     output$plot2 = renderPlot({rerunResults()$p2}) ###end of plot2
     
     # daily isolation for students
-    output$plot3 = renderPlot({rerunResults()$p3}) ###end of plot2
+    output$plot3 = renderPlot({rerunResults()$p3}) ###end of plot3
     
     # daily i/q for students
-    output$plot4 = renderPlot({rerunResults()$p4}) ###end of plot3
+    output$plot4 = renderPlot({rerunResults()$p4}) ###end of plot4
     
     # daily isolation for faculty & staff
-    output$plot5 = renderPlot({rerunResults()$p5}) ###end of plot4
+    output$plot5 = renderPlot({rerunResults()$p5}) ###end of plot5
     
     # daily i/q for faculty & staff
-    output$plot6 = renderPlot({rerunResults()$p6}) ###end of plot5
+    output$plot6 = renderPlot({rerunResults()$p6}) ###end of plot6
+    
+    output$plot7 = renderPlot({rerunResults()$p7})
     
     # Baseline summary statistics
     output$summary = renderTable({rerunResults()$summary})
@@ -1936,7 +2087,8 @@ server = function(input, output)
     
     # Baseline I/Q summary
     
-    # output$iq_summary = renderTable({rerunResults()$iq_summary})
+    # output$iq_summary = renderTable({rerunResults()$iq_summary})0
 }
 
 shinyApp(ui,server)
+
